@@ -1,7 +1,7 @@
 defaults:
   - _self_
-  - override hydra/logging: logging
-  - override hydra/output: output
+  - override hydra/job_logging: custom
+  - override hydra/output: custom
 
 hydra:
   # Don't change working directory
@@ -17,9 +17,9 @@ hydra:
 
   # Don't print Hydra logs to console
   hydra_logging:
-    handlers:
-      console:
-        enabled: false
+    root:
+      level: INFO
+      handlers: []
 
 # LLM client configuration
 llm:

@@ -1,8 +1,6 @@
 import os
 import hydra
-from openai import OpenAI
 from dotenv import load_dotenv
-from pydantic import BaseModel
 from utils.client import init_client
 
 load_dotenv()
@@ -17,6 +15,9 @@ def main(cfg):
     client = init_client(cfg)
     response = client.get_response(messages)
     print(response)
+
+    code, _ = client.get_code(messages)
+    print(code)
 
 if __name__ == "__main__":
     main()

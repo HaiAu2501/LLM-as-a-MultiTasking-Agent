@@ -1,0 +1,31 @@
+defaults:
+  - _self_
+  - override hydra/job_logging: logging
+  - override hydra/output: output
+
+hydra:
+  # Output directory configuration
+  run:
+    dir: ./results/${now:%Y-%m-%d}/${now:%H-%M-%S}
+
+  # Don't change working directory
+  job:
+    name: llm-client
+    chdir: False
+
+  # Configure Hydra's own output
+  output_subdir: .hydra
+
+  # Disable Hydra's own verbose output
+  verbose: false
+
+  # Don't print Hydra logs to console
+  hydra_logging:
+    handlers:
+      console:
+        enabled: false
+
+# LLM client configuration
+llm:
+  model: gpt-4o-mini
+  temperature: 1.0

@@ -1,0 +1,17 @@
+# @package _global_
+hydra:
+  # Output directory for normal runs
+  run:
+    dir: ./outputs/${hydra.job.name}/${now:%Y-%m-%d}_${now:%H-%M-%S}
+    subdir: ${hydra.job.num}_${hydra.job.override_dirname}
+
+  # Output directory for sweep runs (multiple runs with different configs)
+  sweep:
+    dir: ./outputs/${hydra.job.name}/${now:%Y-%m-%d}_${now:%H-%M-%S}
+    subdir: ${hydra.job.num}_${hydra.job.override_dirname}
+
+  # Configure hydra's own logging
+  job_logging:
+    root:
+      level: INFO
+    disable_existing_loggers: false

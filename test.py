@@ -1,5 +1,6 @@
 import os
 import hydra
+from omegaconf import DictConfig
 from dotenv import load_dotenv
 from utils.client import init_client
 
@@ -11,10 +12,9 @@ messages = [
 ]
 
 @hydra.main(config_path="cfg", config_name="config", version_base="1.1")
-def main(cfg):
+def main(cfg: DictConfig) -> None:
+    cfg.llm.model = "gemini-2.0-flash"
     client = init_client(cfg)
-    response = client.get_response(messages)
-    print(response)
 
     code, _ = client.get_code(messages)
     print(code)

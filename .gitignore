@@ -3,3 +3,6 @@
 env
 __pycache__/
 outputs/
+
+# Datasets
+tsp_datasets/

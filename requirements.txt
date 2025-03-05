@@ -3,3 +3,5 @@ numpy==1.26.3
 openai==1.65.2
 tqdm==4.66.3
 typing_extensions==4.12.2
+python-dotenv==1.0.1
+tsplib95==0.7.1

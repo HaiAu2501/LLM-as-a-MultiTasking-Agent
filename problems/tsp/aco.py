@@ -1,12 +1,13 @@
 import torch
 from torch.distributions import Categorical
 import numpy as np
+import importlib.util
 
 class ACO_TSP:
     def __init__(
         self, 
         distances: np.ndarray,
-        n_ants: int = 30, 
+        n_ants: int = 50, 
         n_iterations: int = 100,
         alpha: float = 1.0, 
         beta: float = 2.0, 
@@ -114,3 +115,15 @@ class ACO_TSP:
                 self.best_cost = best_cost
             self.update_pheromone(paths, costs)
         return self.best_cost
+
+if importlib.util.find_spec('heuristic') is not None:
+    from heuristic import heuristic
+    ACO_TSP.heuristic = heuristic
+
+if importlib.util.find_spec('calculate_probabilities') is not None:
+    from calculate_probabilities import calculate_probabilities
+    ACO_TSP.calculate_probabilities = calculate_probabilities
+
+if importlib.util.find_spec('deposit_pheromone') is not None:
+    from deposit_pheromone import deposit_pheromone
+    ACO_TSP.deposit_pheromone = deposit_pheromone

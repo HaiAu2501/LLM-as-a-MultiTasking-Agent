@@ -1,3 +1,35 @@
+import numpy as np
+import os
+import multiprocessing as mp
 from aco import ACO_TSP
 
-BASELINE_COST = 5.9
+BASELINE_COST = 6.220183403581592
+
+def run_aco_tsp(instance_path):
+    distances = np.load(instance_path)
+    aco = ACO_TSP(distances)
+    best_cost = aco.run()
+    return best_cost
+
+def main():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    instance_paths = [
+        os.path.join(current_dir, f'tsp_datasets/50_42_{i}.npy') 
+        for i in range(1, 6)
+    ]
+    
+    with mp.Pool(processes=min(5, mp.cpu_count())) as pool:
+        results = pool.map(run_aco_tsp, instance_paths)
+    
+    avg_cost = sum(results) / len(results)
+    
+    improvement = ((BASELINE_COST - avg_cost) / BASELINE_COST) * 100
+    if improvement > 0:
+        print(f"Performance is better than baseline by {improvement:.2f}%")
+    else:
+        print(f"Performance is worse than baseline by {abs(improvement):.2f}%")
+    return improvement
+
+if __name__ == "__main__":
+    main()

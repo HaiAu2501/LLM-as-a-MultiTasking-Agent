@@ -12,7 +12,8 @@ class ACO_TSP:
         alpha: float = 1.0, 
         beta: float = 2.0, 
         decay: float = 0.9, 
-        device: str = 'cpu'
+        device: str = 'cpu',
+        seed: int = 123
     ) -> None:
         self.device = device
         self.distances = torch.tensor(distances, device=device)
@@ -23,6 +24,7 @@ class ACO_TSP:
         self.alpha = alpha
         self.beta = beta
         self.decay = decay
+        self.seed = seed
         
         self.pheromone = torch.ones_like(self.distances, device=device)
         self.heuristic_matrix = ACO_TSP.heuristic(self.distances)
@@ -62,6 +64,7 @@ class ACO_TSP:
         n_cities = self.n_cities
         n_ants = self.n_ants
         
+        torch.manual_seed(self.seed)
         start = torch.randint(low=0, high=n_cities, size=(n_ants,), device=self.device)
         mask = torch.ones(size=(n_ants, n_cities), device=self.device)
         mask[torch.arange(n_ants, device=self.device), start] = 0

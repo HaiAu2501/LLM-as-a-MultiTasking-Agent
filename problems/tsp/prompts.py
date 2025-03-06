@@ -10,6 +10,8 @@ specifically for the Ant Colony Optimization (ACO) applied to the Traveling Sale
 Your task is to implement the `heuristic` function based on the following signature:
 
 ```python
+import torch
+
 def heuristic(distances: torch.Tensor) -> torch.Tensor:
 ```
 
@@ -27,6 +29,8 @@ You are an expert in probability modeling and decision-making for swarm intellig
 Your assignment is to implement the `calculate_probabilities` function for the ACO algorithm applied to TSP with the following signature:
 
 ```python
+import torch
+
 def calculate_probabilities(
     pheromone_values: torch.Tensor, 
     heuristic_values: torch.Tensor, 
@@ -52,6 +56,8 @@ You are an expert in pheromone update strategies within Ant Colony Optimization 
 Your task is to implement the `deposit_pheromone` function for the ACO algorithm applied to TSP with the following signature:
 
 ```python
+import torch
+
 def deposit_pheromone(
     pheromone: torch.Tensor, 
     paths: torch.Tensor, 

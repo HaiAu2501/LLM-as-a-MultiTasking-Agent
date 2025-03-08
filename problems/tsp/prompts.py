@@ -3,7 +3,7 @@ GUIDE = """
 - Feel free to explore unpopular approaches and briefly justify your design choices.
 """
 
-HEURISTIC = f"""
+F1 = f"""
 You are an expert in designing heuristics for nature-inspired optimization algorithms, 
 specifically for the Ant Colony Optimization (ACO) applied to the Traveling Salesman Problem (TSP). 
 
@@ -23,7 +23,7 @@ Suggestions:
 {GUIDE}
 """
 
-CACULATE_PROBABILITIES = f"""
+F2 = f"""
 You are an expert in probability modeling and decision-making for swarm intelligence algorithms.
 
 Your assignment is to implement the `calculate_probabilities` function for the ACO algorithm applied to TSP with the following signature:
@@ -50,7 +50,7 @@ Suggestions:
 {GUIDE}
 """
 
-DEPOSIT_PHEROMONE = f"""
+F3 = f"""
 You are an expert in pheromone update strategies within Ant Colony Optimization (ACO) algorithms. 
 
 Your task is to implement the `deposit_pheromone` function for the ACO algorithm applied to TSP with the following signature:

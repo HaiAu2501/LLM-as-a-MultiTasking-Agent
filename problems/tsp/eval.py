@@ -24,11 +24,8 @@ def main():
     
     avg_cost = sum(results) / len(results)
     
-    improvement = ((BASELINE_COST - avg_cost) / BASELINE_COST) * 100
-    if improvement > 0:
-        print(f"Performance is better than baseline by {improvement:.2f}%")
-    else:
-        print(f"Performance is worse than baseline by {abs(improvement):.2f}%")
+    improvement = ((BASELINE_COST - avg_cost) / BASELINE_COST)
+    print(improvement)
     return improvement
 
 if __name__ == "__main__":

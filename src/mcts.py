@@ -3,8 +3,11 @@ import random
 import os
 import subprocess
 import numpy as np
-from node import Node
-from code_validator import CodeValidator
+from src.node import Node
+from src.code_validator import CodeValidator
+
+# Get the project root directory
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 class MCTS:
     """
@@ -134,7 +137,6 @@ class MCTS:
             float: The score of the node.
         """
         try:
-            # Create a temporary file with the function implementation
             function_file_path = os.path.join("problems", "tsp", f"{self.function_name}.py")
             
             # Backup the original file
@@ -144,6 +146,7 @@ class MCTS:
             # Write the new function implementation
             with open(function_file_path, 'w') as f:
                 f.write(node.function_code)
+
             
             try:
                 # Run the evaluation script
@@ -158,12 +161,7 @@ class MCTS:
                 output = result.stdout.strip()
                 print(f"Evaluation output: {output}")
                 
-                if "Performance is better than baseline by" in output:
-                    improvement = float(output.split("by ")[1].replace("%", ""))
-                elif "Performance is worse than baseline by" in output:
-                    improvement = -float(output.split("by ")[1].replace("%", ""))
-                else:
-                    improvement = 0.0
+                improvement = float(output)
                 
                 # Store the improvement and calculate the score
                 node.improvement = improvement

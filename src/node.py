@@ -1,7 +1,3 @@
-"""
-Node class for the Hierarchical Monte Carlo Tree Search algorithm.
-"""
-
 class Node:
     """
     Represents a node in the Monte Carlo Tree Search.

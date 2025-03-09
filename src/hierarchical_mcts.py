@@ -1,18 +1,13 @@
 import os
 import time
-import sys
+from src.node import Node
+from src.mcts import MCTS
+from src.operators import Operators
 
-sys.path.append(os.path.join(os.path.dirname(__file__)))
+# Get the project root directory
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
-from node import Node
-from mcts import MCTS
-from operators import Operators
-
-class HierarchicalMCTS:
-    """
-    Implementation of the Hierarchical Monte Carlo Tree Search for function optimization.
-    """
-    
+class HierarchicalMCTS:   
     def __init__(self, client, prompts, iterations_per_function=10, max_depth=3):
         """
         Initialize the Hierarchical MCTS.
@@ -53,7 +48,7 @@ class HierarchicalMCTS:
             "SR": Operators.self_reflection,
             "EF": Operators.ensemble_fusion,
             "DE": Operators.diversity_exploration,
-            "MR": Operators.memory_based_reuse,
+            "MR": Operators.memory_reuse,
             "GR": Operators.guided_randomness
         }
         
@@ -97,7 +92,7 @@ class HierarchicalMCTS:
         
         return self.best_implementations
     
-    def _run_mcts_for_function(self, mcts, function_name):
+    def _run_mcts_for_function(self, mcts: MCTS, function_name):
         """
         Run MCTS for a specific function.
         

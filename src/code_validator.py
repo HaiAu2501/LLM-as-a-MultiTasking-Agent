@@ -1,7 +1,3 @@
-"""
-Validator for generated function code in the Hierarchical Monte Carlo Tree Search.
-"""
-
 import ast
 import re
 

@@ -1,15 +1,6 @@
-"""
-Operators for the Hierarchical Monte Carlo Tree Search algorithm.
-Each operator generates a new function implementation based on a different strategy.
-"""
-
 import random
 
 class Operators:
-    """
-    Implementation of operators for the Monte Carlo Tree Search.
-    """
-    
     @staticmethod
     def self_reflection(node, tree, client, prompts, prompt_key):
         """
@@ -110,7 +101,7 @@ class Operators:
         return code
     
     @staticmethod
-    def memory_based_reuse(node, tree, client, prompts, prompt_key):
+    def memory_reuse(node, tree, client, prompts, prompt_key):
         """
         Memory-based Reuse (MR) operator: Reuse patterns from past successful implementations.
         

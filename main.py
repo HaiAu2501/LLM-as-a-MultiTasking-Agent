@@ -11,6 +11,9 @@ from src.hierarchical_mcts import HierarchicalMCTS
 
 load_dotenv()
 
+# Get the project root directory
+PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
+
 @hydra.main(config_path="cfg", config_name="config", version_base="1.1")
 def main(cfg: DictConfig):
     """
@@ -31,14 +34,15 @@ def main(cfg: DictConfig):
         }
         
         # Create output directory for results
-        os.makedirs("results", exist_ok=True)
+        results_dir = os.path.join(PROJECT_ROOT, "results")
+        os.makedirs(results_dir, exist_ok=True)
         
         # Initialize the Hierarchical MCTS
         hmcts = HierarchicalMCTS(
             client,
             prompts,
-            iterations_per_function=5,  
-            max_depth=3                
+            iterations_per_function=5,  # Number of iterations per function
+            max_depth=3                # Maximum depth of each tree
         )
         
         # Run the Hierarchical MCTS
@@ -70,12 +74,14 @@ def main(cfg: DictConfig):
         # Try to save any intermediate results if available
         try:
             if 'hmcts' in locals() and hasattr(hmcts, 'best_implementations'):
+                results_dir = os.path.join(PROJECT_ROOT, "results")
+                os.makedirs(results_dir, exist_ok=True)
                 for function_name, implementation in hmcts.best_implementations.items():
-                    with open(f"results/emergency_save_{function_name}.py", "w") as f:
+                    with open(os.path.join(results_dir, f"emergency_save_{function_name}.py"), "w") as f:
                         f.write(implementation)
-                print("Saved intermediate results to results/ directory.")
-        except:
-            print("Could not save intermediate results.")
+                print(f"Saved intermediate results to {results_dir} directory.")
+        except Exception as save_error:
+            print(f"Could not save intermediate results: {save_error}")
         
         sys.exit(1)
 

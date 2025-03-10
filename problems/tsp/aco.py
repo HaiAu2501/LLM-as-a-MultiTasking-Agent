@@ -119,14 +119,14 @@ class ACO_TSP:
             self.update_pheromone(paths, costs)
         return self.best_cost
 
-if importlib.util.find_spec('heuristic') is not None:
-    from heuristic import heuristic
+if importlib.util.find_spec('F1') is not None:
+    from problems.tsp.F1 import heuristic
     ACO_TSP.heuristic = heuristic
 
-if importlib.util.find_spec('calculate_probabilities') is not None:
-    from calculate_probabilities import calculate_probabilities
+if importlib.util.find_spec('F2') is not None:
+    from problems.tsp.F2 import calculate_probabilities
     ACO_TSP.calculate_probabilities = calculate_probabilities
 
-if importlib.util.find_spec('deposit_pheromone') is not None:
-    from deposit_pheromone import deposit_pheromone
+if importlib.util.find_spec('F3') is not None:
+    from problems.tsp.F3 import deposit_pheromone
     ACO_TSP.deposit_pheromone = deposit_pheromone

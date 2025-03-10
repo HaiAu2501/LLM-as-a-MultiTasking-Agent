@@ -25,7 +25,35 @@ llm:
   model: gpt-4o-mini
   temperature: 1.0
 
+# MCTS configuration
+mcts:
+  iterations_per_function: 5
+  max_depth: 3
+
 # Paths configuration
 paths:
   project_root: ${hydra:runtime.cwd}
-  results_dir: ${paths:project_root}/results
+  results_dir: ${paths.project_root}/results
+
+problem:
+  active: tsp
+  base_path: ${paths.project_root}/problems
+
+  tsp:
+    name: Traveling Salesman Problem
+    base_path: ${problem.base_path}/tsp
+    eval_script: ${problem.tsp.base_path}/eval.py
+    functions:
+      - id: F1
+        name: heuristic
+        path: ${problem.tsp.base_path}/F1.py
+      - id: F2
+        name: calculate_probabilities
+        path: ${problem.tsp.base_path}/F2.py
+      - id: F3
+        name: calculate_distances
+        path: ${problem.tsp.base_path}/F3.py
+
+  cvrp:
+    name: Capacitated Vehicle Routing Problem
+    base_path: ${problem.base_path}/cvrp

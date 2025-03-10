@@ -11,17 +11,13 @@ from src.hierarchical_mcts import HierarchicalMCTS
 
 load_dotenv()
 
-# Get the project root directory
-PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
-
 @hydra.main(config_path="cfg", config_name="config", version_base="1.1")
 def main(cfg: DictConfig):
     """
     Main entry point for the Hierarchical Monte Carlo Tree Search.
     """
     print("Starting Hierarchical Monte Carlo Tree Search for Function Optimization")
-    start_time = time.time()
-    
+
     try:
         # Initialize the LLM client
         client = init_client(cfg)
@@ -34,8 +30,8 @@ def main(cfg: DictConfig):
         }
         
         # Create output directory for results
-        results_dir = os.path.join(PROJECT_ROOT, "results")
-        os.makedirs(results_dir, exist_ok=True)
+        # results_dir = os.path.join(PROJECT_ROOT, "results")
+        # os.makedirs(results_dir, exist_ok=True)
         
         # Initialize the Hierarchical MCTS
         hmcts = HierarchicalMCTS(
@@ -48,12 +44,6 @@ def main(cfg: DictConfig):
         # Run the Hierarchical MCTS
         best_implementations = hmcts.run()
         
-        # Calculate total execution time
-        execution_time = time.time() - start_time
-        hours, remainder = divmod(execution_time, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        
-        print(f"\n\nOptimization complete in {int(hours)}h {int(minutes)}m {int(seconds)}s!")
         print("Final implementations:")
         
         # Save and print the best implementations

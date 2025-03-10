@@ -4,9 +4,8 @@ defaults:
   - override hydra/output: custom
 
 hydra:
-  # Don't change working directory
   job:
-    name: llm-client
+    name: .
     chdir: False
 
   # Configure Hydra's own output
@@ -25,3 +24,8 @@ hydra:
 llm:
   model: gpt-4o-mini
   temperature: 1.0
+
+# Paths configuration
+paths:
+  project_root: ${hydra:runtime.cwd}
+  results_dir: ${paths:project_root}/results

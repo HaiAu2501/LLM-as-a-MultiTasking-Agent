@@ -1,48 +1,54 @@
 import math
 import random
 import os
+import sys
 import subprocess
 import numpy as np
 from src.node import Node
 from src.code_validator import CodeValidator
-
-# Get the project root directory
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+from omegaconf import DictConfig
 
 class MCTS:
     """
     Implementation of the Monte Carlo Tree Search algorithm for function optimization.
     """
     
-    def __init__(self, function_name, initial_code, client, prompts, exploration_weight=1.0, max_depth=3):
+    def __init__(
+        self, 
+        function_name, 
+        function_id, 
+        initial_code, 
+        client, 
+        prompts, 
+        prompt_key,
+        problem_config,
+        exploration_weight=1.0, 
+        max_depth=3
+    ):
         """
         Initialize the MCTS algorithm.
         
         Args:
             function_name (str): The name of the function to optimize.
+            function_id (str): The ID of the function (e.g., F1, F2).
             initial_code (str): The initial implementation of the function.
             client: The LLM client for generating new function implementations.
             prompts: The prompts dictionary for guiding the LLM.
+            prompt_key: The key in the prompts dictionary to use.
+            problem_config: The problem configuration.
             exploration_weight (float, optional): The exploration weight for UCB. Defaults to 1.0.
             max_depth (int, optional): The maximum depth of the tree. Defaults to 3.
         """
         self.function_name = function_name
+        self.function_id = function_id
         self.root = Node(initial_code, function_name, depth=0)
         self.client = client
         self.prompts = prompts
+        self.prompt_key = prompt_key
+        self.problem_config = problem_config
         self.exploration_weight = exploration_weight
         self.max_depth = max_depth
         self.best_node = self.root
-        
-        # Get the function prompt key
-        if function_name == "heuristic":
-            self.prompt_key = "F1"
-        elif function_name == "calculate_probabilities":
-            self.prompt_key = "F2"
-        elif function_name == "deposit_pheromone":
-            self.prompt_key = "F3"
-        else:
-            raise ValueError(f"Unknown function name: {function_name}")
     
     def select_node(self):
         """
@@ -116,7 +122,6 @@ class MCTS:
                     
                     # Create a new child node
                     child = Node(new_code, self.function_name, parent=node, depth=node.depth + 1)
-                    print(child.function_code)
                     node.add_child(child)
                     new_children.append(child)
                     
@@ -137,34 +142,52 @@ class MCTS:
             float: The score of the node.
         """
         try:
-            function_file_path = os.path.join("problems", "tsp", f"{self.function_name}.py")
+            # Get function file path from config
+            function_path = None
+            for func in self.problem_config.functions:
+                if func.id == self.function_id:
+                    function_path = func.path
+                    break
+            
+            if not function_path:
+                raise ValueError(f"Function path not found for {self.function_id}")
             
             # Backup the original file
-            with open(function_file_path, 'r') as f:
+            with open(function_path, 'r') as f:
                 original_code = f.read()
             
             # Write the new function implementation
-            with open(function_file_path, 'w') as f:
+            with open(function_path, 'w') as f:
                 f.write(node.function_code)
 
-            
             try:
                 # Run the evaluation script
                 result = subprocess.run(
-                    ["python", os.path.join("problems", "tsp", "eval.py")],
+                    [sys.executable, self.problem_config.eval_script],
                     capture_output=True,
                     text=True,
-                    timeout=60  # Set a timeout of 60 seconds
+                    timeout=300  # Set a timeout of 60 seconds
                 )
                 
                 # Parse the improvement percentage
                 output = result.stdout.strip()
                 print(f"Evaluation output: {output}")
                 
-                improvement = float(output)
+                # Try to extract a float from the output
+                try:
+                    improvement = float(output)
+                except ValueError:
+                    # Look for a numeric value in the output
+                    import re
+                    matches = re.findall(r"[-+]?\d*\.\d+|\d+", output)
+                    if matches:
+                        improvement = float(matches[0])
+                    else:
+                        print("Could not parse improvement value, defaulting to 0")
+                        improvement = 0.0
                 
                 # Store the improvement and calculate the score
-                node.improvement = improvement
+                node.improvement = improvement * 100  # Convert to percentage if needed
                 node.score = max(0, improvement)  # Negative improvements are considered as 0
             except subprocess.TimeoutExpired:
                 print("Evaluation timed out, setting score to 0")
@@ -176,7 +199,7 @@ class MCTS:
                 node.score = 0.0
             finally:
                 # Restore the original file
-                with open(function_file_path, 'w') as f:
+                with open(function_path, 'w') as f:
                     f.write(original_code)
             
             return node.score

@@ -3,6 +3,16 @@ import os
 import multiprocessing as mp
 from aco import ACO_TSP
 
+try:
+    from F1 import heuristic
+    ACO_TSP.heuristic = heuristic
+    from F2 import calculate_probabilities
+    ACO_TSP.calculate_probabilities = calculate_probabilities
+    from F3 import deposit_pheromone
+    ACO_TSP.deposit_pheromone = deposit_pheromone
+except ImportError:
+    pass
+
 BASELINE_COST = 6.220183403581592
 
 def run_aco_tsp(instance_path):

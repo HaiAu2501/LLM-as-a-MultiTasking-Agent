@@ -27,8 +27,8 @@ llm:
 
 # MCTS configuration
 mcts:
-  iterations_per_function: 5
-  max_depth: 3
+  iterations_per_function: 20
+  max_depth: 10
 
 # Paths configuration
 paths:
@@ -51,7 +51,7 @@ problem:
         name: calculate_probabilities
         path: ${problem.tsp.base_path}/F2.py
       - id: F3
-        name: calculate_distances
+        name: deposit_pheromone
         path: ${problem.tsp.base_path}/F3.py
 
   cvrp:

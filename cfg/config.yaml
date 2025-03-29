@@ -23,7 +23,7 @@ hydra:
 # LLM client configuration
 llm:
   model: gpt-4o-mini
-  temperature: 1.0
+  temperature: 0.75
 
 # MCTS configuration
 mcts:

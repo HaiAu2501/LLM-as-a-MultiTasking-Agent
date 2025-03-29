@@ -1,7 +1,8 @@
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from openai import OpenAI
 from utils.format.code import Code
+from utils.format.decision import OptimizationDecision
 
 class LLMClient:
     """
@@ -72,7 +73,7 @@ class LLMClient:
             responses.append(response)
         return responses
 
-    def get_code(self, messages: List[Dict[str, str]], temperature: Optional[float] = None) -> str:
+    def get_code(self, messages: List[Dict[str, str]], temperature: Optional[float] = None) -> Tuple[str, str]:
         """
         Generate code completions using the configured model via OpenAI API.
         
@@ -95,3 +96,25 @@ class LLMClient:
 
         return response.code, response.explain
         
+    def get_optimization_decision(self, messages: List[Dict[str, str]], temperature: Optional[float] = None) -> Tuple[str, str, str]:
+        """
+        Get the decision on which function to optimize next from the LLM.
+        
+        Args:
+            messages: List of message dictionaries with "role" and "content" keys
+            temperature: Override the default temperature if provided
+            
+        Returns:
+            Tuple containing the function_id, rationale, and suggestions
+        """
+        temp = temperature if temperature is not None else self.temperature
+        
+        response = self.client.beta.chat.completions.parse(
+            model=self.model,
+            messages=messages,
+            temperature=temp,
+            n=1,
+            response_format=OptimizationDecision,
+        ).choices[0].message.parsed
+        
+        return response.function_id, response.rationale, response.suggestions

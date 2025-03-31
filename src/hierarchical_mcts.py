@@ -26,14 +26,14 @@ class HierarchicalMCTS:
         self.problem_config = getattr(cfg.problem, self.active_problem)
         
         # Get MCTS parameters from config
-        self.iterations_per_function = cfg.mcts.iterations_per_function
-        self.total_iterations = self.iterations_per_function * len(self.problem_config.functions)
+        self.iterations_per_strategy = cfg.mcts.iterations_per_function  # Keep parameter name for backward compatibility
+        self.total_iterations = self.iterations_per_strategy * len(self.problem_config.functions)
         self.max_depth = cfg.mcts.max_depth
         
         # Make sure results directory exists
         os.makedirs(cfg.paths.results_dir, exist_ok=True)
         
-        # Dictionary to store MCTS instances for each function
+        # Dictionary to store MCTS instances for each strategy
         self.mcts_instances = {}
         
         # Store best implementations
@@ -56,37 +56,49 @@ class HierarchicalMCTS:
             "DE": Operators.diversity_exploration
         }
         
-        # Initialize MCTS for each function
+        # Initialize MCTS for each strategy
         self._initialize_mcts_instances()
     
     def _initialize_mcts_instances(self):
         """
-        Initialize MCTS instances for each function.
+        Initialize MCTS instances for each strategy.
         """
-        print(f"\n{'='*20} Initializing MCTS instances for all functions {'='*20}\n")
+        print(f"\n{'='*20} Initializing MCTS instances for all strategies {'='*20}\n")
         
-        for function in self.problem_config.functions:
-            function_id = function.id
-            function_name = function.name
-            function_path = function.path
+        for strategy in self.problem_config.functions:
+            strategy_id = strategy.id
+            strategy_name = strategy.name
+            strategy_path = strategy.path
+            base_class = strategy.base_class
             
-            # Use function ID as prompt key
-            prompt_key = function_id
+            # Use strategy ID as prompt key
+            prompt_key = strategy_id
             
-            print(f"\n{'='*10} Initializing {function_name} (ID: {function_id}) {'='*10}\n")
+            print(f"\n{'='*10} Initializing {strategy_name} (ID: {strategy_id}) {'='*10}\n")
+            print(f"Base class: {base_class}")
             
             # Read the initial implementation
             try:
-                with open(function_path, 'r') as f:
+                with open(strategy_path, 'r') as f:
                     initial_code = f.read()
             except FileNotFoundError:
-                print(f"Warning: Function file {function_path} not found. Using default implementation.")
-                initial_code = f"import torch\n\ndef {function_name}():\n    pass"
+                print(f"Warning: Strategy file {strategy_path} not found. Using default implementation.")
+                initial_code = f"""import torch
+from aco import {base_class}
+
+class {strategy_name}({base_class}):
+    def __init__(self):
+        pass
+        
+    def compute(self, distances: torch.Tensor) -> torch.Tensor:
+        # Default implementation
+        pass
+"""
             
-            # Create a new MCTS for the function
+            # Create a new MCTS for the strategy
             mcts = MCTS(
-                function_name=function_name,
-                function_id=function_id,
+                function_name=strategy_name,  # Using function_name for backward compatibility
+                function_id=strategy_id,
                 initial_code=initial_code,
                 client=self.client,
                 prompts=self.prompts,
@@ -99,37 +111,39 @@ class HierarchicalMCTS:
             mcts.simulate(mcts.root)
             mcts.backpropagate(mcts.root, mcts.root.score)
             
-            self.mcts_instances[function_id] = mcts
-            print(f"Initialized MCTS for {function_name} (ID: {function_id})")
+            self.mcts_instances[strategy_id] = mcts
+            print(f"Initialized MCTS for {strategy_name} (ID: {strategy_id})")
             print(f"Initial implementation score: {mcts.root.score:.4f}, improvement: {mcts.root.improvement:.2f}%")
     
     def get_optimization_status(self):
         """
-        Get the current status of optimization for all functions.
+        Get the current status of optimization for all strategies.
         
         Returns:
-            str: A string containing information about the current state of all functions.
+            str: A string containing information about the current state of all strategies.
         """
         status = []
         
-        for function in self.problem_config.functions:
-            function_id = function.id
-            function_name = function.name
+        for strategy in self.problem_config.functions:
+            strategy_id = strategy.id
+            strategy_name = strategy.name
+            base_class = strategy.base_class
             
-            mcts = self.mcts_instances[function_id]
+            mcts = self.mcts_instances[strategy_id]
             best_node = mcts.get_best_node()
             
-            iterations_used = sum(1 for item in self.iteration_history if item["function_id"] == function_id)
+            iterations_used = sum(1 for item in self.iteration_history if item["strategy_id"] == strategy_id)
             
-            status.append(f"Function: {function_name} (ID: {function_id})")
-            status.append(f"- Iterations used: {iterations_used}/{self.iterations_per_function}")
+            status.append(f"Strategy: {strategy_name} (ID: {strategy_id})")
+            status.append(f"- Base class: {base_class}")
+            status.append(f"- Iterations used: {iterations_used}/{self.iterations_per_strategy}")
             status.append(f"- Best improvement so far: {best_node.improvement:.2f}%")
             status.append(f"- Best score so far: {best_node.score:.4f}")
             status.append(f"- Depth of best node: {best_node.depth}")
             status.append(f"- Total nodes in tree: {self._count_nodes(mcts.root)}")
             
             # Include information about recently explored nodes
-            if len(self.iteration_history) > 0 and self.iteration_history[-1]["function_id"] == function_id:
+            if len(self.iteration_history) > 0 and self.iteration_history[-1]["strategy_id"] == strategy_id:
                 status.append(f"- Most recent exploration:")
                 last_iter = self.iteration_history[-1]
                 for metric, value in last_iter["results"].items():
@@ -148,10 +162,10 @@ class HierarchicalMCTS:
             status.append("")  # Empty line for separation
         
         # Add information about relationships and dependencies
-        status.append("Function Relationships:")
-        status.append("- F1 (heuristic): Transforms distances into attractiveness values")
-        status.append("- F2 (calculate_probabilities): Uses pheromones and heuristic values to guide ant decisions")
-        status.append("- F3 (deposit_pheromone): Updates pheromone trails based on ant paths and costs")
+        status.append("Strategy Relationships:")
+        status.append("- F1 (HeuristicImpl): Converts distances into attractiveness values")
+        status.append("- F2 (ProbabilityImpl): Calculates transition probabilities")
+        status.append("- F3 (PheromoneImpl): Updates pheromone trails")
         status.append("")
         status.append("Dependencies: F1 feeds into F2, F2 affects ant path selection, F3 updates environment for next iteration")
         
@@ -172,71 +186,73 @@ class HierarchicalMCTS:
             count += self._count_nodes(child)
         return count
     
-    def get_next_function_to_optimize(self):
+    def get_next_strategy_to_optimize(self):
         """
-        Ask the LLM which function to optimize next based on the current status.
+        Ask the LLM which strategy to optimize next based on the current status.
         
         Returns:
-            tuple: (function_id, rationale, suggestions)
+            tuple: (strategy_id, rationale, suggestions)
         """
         status = self.get_optimization_status()
         
         system_prompt = """You are an AI specializing in guiding optimization processes for algorithm development.
-Based on the current status of multiple function optimizations, decide which function should be optimized in the next iteration.
+Based on the current status of multiple strategy optimizations, decide which strategy should be optimized in the next iteration.
 Consider factors like:
 - Current improvement levels and performance scores
-- Iterations used so far for each function (balance usage)
+- Iterations used so far for each strategy (balance usage)
 - Potential for further improvement
-- Interdependencies between functions (F1->F2->F3 workflow)
+- Interdependencies between strategies
 - Recent exploration results
 
-Your decision should include which function to optimize next (F1, F2, or F3), your rationale, and specific suggestions for how to improve that function."""
+Your decision should include which strategy to optimize next (F1, F2, or F3), your rationale, and specific suggestions for how to improve that strategy."""
         
         user_prompt = f"""Current optimization status:
 
 {status}
 
-Based on this information, which function should be optimized next?
+Based on this information, which strategy should be optimized next?
 
-Function descriptions:
-- F1 (heuristic): Transforms distances into attractiveness values for paths between cities
-- F2 (calculate_probabilities): Calculates probabilities for selecting the next city based on pheromone and heuristic values
-- F3 (deposit_pheromone): Updates pheromone levels based on paths taken by ants and their costs
+Strategy descriptions:
+- F1 (HeuristicImpl): Converts distances into attractiveness values
+- F2 (ProbabilityImpl): Calculates probabilities for selecting the next city
+- F3 (PheromoneImpl): Updates pheromone levels based on paths
 
-Decide which function (F1, F2, or F3) should be optimized in the next iteration and provide specific suggestions for its improvement."""
+Decide which strategy (F1, F2, or F3) should be optimized in the next iteration and provide specific suggestions for its improvement."""
         
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ]
         
-        function_id, rationale, suggestions = self.client.get_optimization_decision(messages)
+        strategy_id, rationale, suggestions = self.client.get_optimization_decision(messages)
         
-        print(f"\nLLM Decision: Optimize {function_id} next")
+        print(f"\nLLM Decision: Optimize {strategy_id} next")
         print(f"Rationale: {rationale}\n")
         print(f"Suggestions: {suggestions}\n")
         
-        return function_id, rationale, suggestions
+        return strategy_id, rationale, suggestions
     
-    def run_optimization_iteration(self, function_id, suggestions):
+    def run_optimization_iteration(self, strategy_id, suggestions):
         """
-        Run one iteration of optimization for a specific function.
+        Run one iteration of optimization for a specific strategy.
         
         Args:
-            function_id: The ID of the function to optimize.
-            suggestions: Suggestions from the LLM for optimizing the function.
+            strategy_id: The ID of the strategy to optimize.
+            suggestions: Suggestions from the LLM for optimizing the strategy.
             
         Returns:
             dict: Results of the iteration.
         """
         # Get the corresponding MCTS instance
-        mcts = self.mcts_instances[function_id]
+        mcts = self.mcts_instances[strategy_id]
         
-        # Get function info
-        function_name = None
-        for func in self.problem_config.functions:
-            if func.id == function_id:
-                function_name = func.name
+        # Get strategy info
+        strategy_name = None
+        base_class = None
+        for strat in self.problem_config.functions:
+            if strat.id == strategy_id:
+                strategy_name = strat.name
+                base_class = strat.base_class
                 break
         
         # 1. Selection
@@ -247,7 +263,7 @@ Decide which function (F1, F2, or F3) should be optimized in the next iteration 
         if suggestions:
             def llm_guided_operator(node, tree, client, prompts, prompt_key):
                 system_prompt = prompts[prompt_key]
-                user_prompt = f"""Implement an improved version of the function based on these specific suggestions:
+                user_prompt = f"""Implement an improved version of the {strategy_name} class based on these specific suggestions:
 
 {suggestions}
 
@@ -256,7 +272,7 @@ Current implementation:
 {node.function_code}
 ```
 
-Create a new implementation that incorporates these suggestions while ensuring it follows the required function signature."""
+Create a new implementation that incorporates these suggestions while ensuring it inherits from {base_class} and follows the required interface."""
                 
                 messages = [
                     {"role": "system", "content": system_prompt},
@@ -322,88 +338,88 @@ Create a new implementation that incorporates these suggestions while ensuring i
     
     def run(self):
         """
-        Run the Hierarchical MCTS with LLM-guided function selection.
+        Run the Hierarchical MCTS with LLM-guided strategy selection.
         
         Returns:
-            dict: The best implementations for each function.
+            dict: The best implementations for each strategy.
         """
-        print(f"\n{'='*20} Optimizing functions for {self.problem_config.name} {'='*20}\n")
+        print(f"\n{'='*20} Optimizing strategies for {self.problem_config.name} {'='*20}\n")
         
-        # Track iterations performed for each function
-        function_iterations = {func.id: 0 for func in self.problem_config.functions}
+        # Track iterations performed for each strategy
+        strategy_iterations = {strat.id: 0 for strat in self.problem_config.functions}
         
         for i in range(self.total_iterations):
             print(f"\n{'='*20} Iteration {i+1}/{self.total_iterations} {'='*20}\n")
             
-            # Ask LLM which function to optimize next
-            function_id, rationale, suggestions = self.get_next_function_to_optimize()
+            # Ask LLM which strategy to optimize next
+            strategy_id, rationale, suggestions = self.get_next_strategy_to_optimize()
             
-            # Check if we've reached the max iterations for this function
-            if function_iterations[function_id] >= self.iterations_per_function:
-                print(f"Maximum iterations reached for {function_id}. Selecting another function...")
+            # Check if we've reached the max iterations for this strategy
+            if strategy_iterations[strategy_id] >= self.iterations_per_strategy:
+                print(f"Maximum iterations reached for {strategy_id}. Selecting another strategy...")
                 
-                # Find functions that haven't reached their max iterations
-                available_functions = [f.id for f in self.problem_config.functions 
-                                      if function_iterations[f.id] < self.iterations_per_function]
+                # Find strategies that haven't reached their max iterations
+                available_strategies = [s.id for s in self.problem_config.functions 
+                                      if strategy_iterations[s.id] < self.iterations_per_strategy]
                 
-                if not available_functions:
-                    print("All functions have reached their maximum iterations. Ending optimization.")
+                if not available_strategies:
+                    print("All strategies have reached their maximum iterations. Ending optimization.")
                     break
                 
-                # Select another function
-                function_id = available_functions[0]
-                print(f"Selected {function_id} instead.")
+                # Select another strategy
+                strategy_id = available_strategies[0]
+                print(f"Selected {strategy_id} instead.")
             
-            # Get function info
-            function_name = None
-            for func in self.problem_config.functions:
-                if func.id == function_id:
-                    function_name = func.name
+            # Get strategy info
+            strategy_name = None
+            for strat in self.problem_config.functions:
+                if strat.id == strategy_id:
+                    strategy_name = strat.name
                     break
             
-            print(f"Optimizing {function_name} (ID: {function_id})")
+            print(f"Optimizing {strategy_name} (ID: {strategy_id})")
             
-            # Update iteration count for this function
-            function_iterations[function_id] += 1
-            print(f"Iteration {function_iterations[function_id]}/{self.iterations_per_function} for this function")
+            # Update iteration count for this strategy
+            strategy_iterations[strategy_id] += 1
+            print(f"Iteration {strategy_iterations[strategy_id]}/{self.iterations_per_strategy} for this strategy")
             
             # Run one iteration of optimization
-            iteration_results = self.run_optimization_iteration(function_id, suggestions)
+            iteration_results = self.run_optimization_iteration(strategy_id, suggestions)
             
             # Record the iteration
             self.iteration_history.append({
                 "iteration": i+1,
-                "function_id": function_id,
-                "function_name": function_name,
+                "strategy_id": strategy_id,
+                "strategy_name": strategy_name,
                 "rationale": rationale,
                 "suggestions": suggestions,
                 "results": iteration_results
             })
         
         # After all iterations, save the best implementations
-        for function in self.problem_config.functions:
-            function_id = function.id
-            function_name = function.name
-            function_path = function.path
+        for strategy in self.problem_config.functions:
+            strategy_id = strategy.id
+            strategy_name = strategy.name
+            strategy_path = strategy.path
             
             # Get the best implementation
-            mcts = self.mcts_instances[function_id]
+            mcts = self.mcts_instances[strategy_id]
             best_node = mcts.get_best_node()
             best_implementation = best_node.function_code
             
-            self.best_implementations[function_id] = best_implementation
+            self.best_implementations[strategy_id] = best_implementation
             
             # Save the best implementation
-            with open(function_path, 'w') as f:
+            with open(strategy_path, 'w') as f:
                 f.write(best_implementation)
             
             # Also save to results directory
-            result_path = os.path.join(self.cfg.paths.results_dir, f"best_{function_id}_{self.active_problem}.py")
+            result_path = os.path.join(self.cfg.paths.results_dir, f"best_{strategy_id}_{self.active_problem}.py")
             with open(result_path, 'w') as f:
                 f.write(best_implementation)
             
-            print(f"\n{'='*20} Saved best {function_name} implementation {'='*20}")
-            print(f"Saved to {function_path} and {result_path}")
+            print(f"\n{'='*20} Saved best {strategy_name} implementation {'='*20}")
+            print(f"Saved to {strategy_path} and {result_path}")
             print(f"Final improvement: {best_node.improvement:.2f}%")
         
         return self.best_implementations

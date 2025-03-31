@@ -23,7 +23,7 @@ hydra:
 # LLM client configuration
 llm:
   model: gpt-4o-mini
-  temperature: 0.75
+  temperature: 1.0
 
 # MCTS configuration
 mcts:
@@ -45,14 +45,17 @@ problem:
     eval_script: ${problem.tsp.base_path}/eval.py
     functions:
       - id: F1
-        name: heuristic
+        name: HeuristicImpl
         path: ${problem.tsp.base_path}/F1.py
+        base_class: HeuristicStrategy
       - id: F2
-        name: calculate_probabilities
+        name: ProbabilityImpl
         path: ${problem.tsp.base_path}/F2.py
+        base_class: ProbabilityStrategy
       - id: F3
-        name: deposit_pheromone
+        name: PheromoneImpl
         path: ${problem.tsp.base_path}/F3.py
+        base_class: PheromoneStrategy
 
   cvrp:
     name: Capacitated Vehicle Routing Problem

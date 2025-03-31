@@ -10,7 +10,7 @@ from omegaconf import DictConfig
 
 class MCTS:
     """
-    Implementation of the Monte Carlo Tree Search algorithm for function optimization.
+    Implementation of the Monte Carlo Tree Search algorithm for strategy optimization.
     """
     
     def __init__(
@@ -29,10 +29,10 @@ class MCTS:
         Initialize the MCTS algorithm.
         
         Args:
-            function_name (str): The name of the function to optimize.
-            function_id (str): The ID of the function (e.g., F1, F2).
-            initial_code (str): The initial implementation of the function.
-            client: The LLM client for generating new function implementations.
+            function_name (str): The name of the strategy class to optimize.
+            function_id (str): The ID of the strategy (e.g., F1, F2).
+            initial_code (str): The initial implementation of the strategy.
+            client: The LLM client for generating new strategy implementations.
             prompts: The prompts dictionary for guiding the LLM.
             prompt_key: The key in the prompts dictionary to use.
             problem_config: The problem configuration.
@@ -111,12 +111,12 @@ class MCTS:
                     new_code = op_func(node, self, self.client, self.prompts, self.prompt_key)
                     
                     # Validate and fix the code
-                    if not CodeValidator.validate_code(new_code, self.function_name):
+                    if not CodeValidator.validate_code(new_code, self._get_validator_function_name()):
                         print(f"Invalid code generated with operator {op_name}, attempting to fix...")
-                        new_code = CodeValidator.fix_code(new_code, self.function_name)
+                        new_code = CodeValidator.fix_code(new_code, self._get_validator_function_name())
                         
                         # Validate again after fixing
-                        if not CodeValidator.validate_code(new_code, self.function_name):
+                        if not CodeValidator.validate_code(new_code, self._get_validator_function_name()):
                             print(f"Could not fix code generated with operator {op_name}, skipping...")
                             continue
                     
@@ -131,9 +131,27 @@ class MCTS:
         
         return new_children
     
+    def _get_validator_function_name(self):
+        """
+        Get the function name used by the validator, which is based on
+        legacy function names for backward compatibility.
+        
+        Returns:
+            str: Function name for validator
+        """
+        # Map strategy class names to legacy function names for validator
+        if self.function_name == "HeuristicImpl":
+            return "heuristic"
+        elif self.function_name == "ProbabilityImpl":
+            return "calculate_probabilities"
+        elif self.function_name == "PheromoneImpl":
+            return "deposit_pheromone"
+        else:
+            return self.function_name.lower()
+    
     def simulate(self, node):
         """
-        Simulate the performance of a node by evaluating its function.
+        Simulate the performance of a node by evaluating its strategy.
         
         Args:
             node (Node): The node to simulate.
@@ -150,13 +168,13 @@ class MCTS:
                     break
             
             if not function_path:
-                raise ValueError(f"Function path not found for {self.function_id}")
+                raise ValueError(f"Strategy path not found for {self.function_id}")
             
             # Backup the original file
             with open(function_path, 'r') as f:
                 original_code = f.read()
             
-            # Write the new function implementation
+            # Write the new strategy implementation
             with open(function_path, 'w') as f:
                 f.write(node.function_code)
 
@@ -166,7 +184,7 @@ class MCTS:
                     [sys.executable, self.problem_config.eval_script],
                     capture_output=True,
                     text=True,
-                    timeout=300  # Set a timeout of 60 seconds
+                    timeout=300  # Set a timeout of 5 minutes
                 )
                 
                 # Parse the improvement percentage

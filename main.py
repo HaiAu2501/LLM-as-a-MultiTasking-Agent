@@ -17,7 +17,7 @@ def main(cfg: DictConfig):
     """
     Main entry point for the Hierarchical Monte Carlo Tree Search.
     """
-    print(f"Starting Hierarchical Monte Carlo Tree Search for {cfg.problem.active.upper()} Function Optimization")
+    print(f"Starting Hierarchical Monte Carlo Tree Search for {cfg.problem.active.upper()} Strategy Optimization")
 
     try:
         # Initialize the LLM client
@@ -49,15 +49,17 @@ def main(cfg: DictConfig):
         active_problem = cfg.problem.active
         problem_config = getattr(cfg.problem, active_problem)
         
-        for function in problem_config.functions:
-            function_id = function.id
-            function_name = function.name
+        for strategy in problem_config.functions:
+            strategy_id = strategy.id
+            strategy_name = strategy.name
+            base_class = strategy.base_class
             
-            if function_id in best_implementations:
-                implementation = best_implementations[function_id]
-                result_file = f"results/best_{function_id}_{active_problem}.py"
+            if strategy_id in best_implementations:
+                implementation = best_implementations[strategy_id]
+                result_file = f"results/best_{strategy_id}_{active_problem}.py"
                 
-                print(f"\n{'='*20} Best {function_name} ({function_id}) implementation {'='*20}")
+                print(f"\n{'='*20} Best {strategy_name} ({strategy_id}) implementation {'='*20}")
+                print(f"Base class: {base_class}")
                 print(f"Saved to {result_file}")
                 print(f"{'='*60}")
     
@@ -68,16 +70,16 @@ def main(cfg: DictConfig):
         # Try to save any intermediate results if available
         try:
             if 'hmcts' in locals() and hasattr(hmcts, 'best_implementations'):
-                for function_id, implementation in hmcts.best_implementations.items():
-                    # Find function name from config
-                    function_name = function_id
-                    for func in getattr(cfg.problem, cfg.problem.active).functions:
-                        if func.id == function_id:
-                            function_name = func.name
+                for strategy_id, implementation in hmcts.best_implementations.items():
+                    # Find strategy name from config
+                    strategy_name = strategy_id
+                    for strat in getattr(cfg.problem, cfg.problem.active).functions:
+                        if strat.id == strategy_id:
+                            strategy_name = strat.name
                             break
                     
                     # Save to emergency file
-                    with open(os.path.join(cfg.paths.results_dir, f"emergency_save_{function_id}_{cfg.problem.active}.py"), "w") as f:
+                    with open(os.path.join(cfg.paths.results_dir, f"emergency_save_{strategy_id}_{cfg.problem.active}.py"), "w") as f:
                         f.write(implementation)
                 print(f"Saved intermediate results to {cfg.paths.results_dir} directory.")
         except Exception as save_error:

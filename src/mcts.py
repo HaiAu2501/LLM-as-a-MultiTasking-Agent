@@ -49,6 +49,7 @@ class MCTS:
         self.exploration_weight = exploration_weight
         self.max_depth = max_depth
         self.best_node = self.root
+        self.baseline_cost = None  # Sẽ được tính khi đánh giá node gốc
     
     def select_node(self):
         """
@@ -177,7 +178,7 @@ class MCTS:
             # Write the new strategy implementation
             with open(function_path, 'w') as f:
                 f.write(node.function_code)
-
+            
             try:
                 # Run the evaluation script
                 result = subprocess.run(
@@ -187,26 +188,74 @@ class MCTS:
                     timeout=300  # Set a timeout of 5 minutes
                 )
                 
-                # Parse the improvement percentage
+                # Parse the average cost
                 output = result.stdout.strip()
                 print(f"Evaluation output: {output}")
                 
-                # Try to extract a float from the output
+                # Kiểm tra output có trống không
+                if not output:
+                    print("Empty evaluation output, setting score to 0")
+                    node.improvement = 0.0
+                    node.score = 0.0
+                    return 0.0
+                
+                # Trích xuất giá trị avg_cost từ output
                 try:
-                    improvement = float(output)
+                    avg_cost = float(output)
                 except ValueError:
-                    # Look for a numeric value in the output
+                    # Tìm kiếm giá trị số trong output
                     import re
                     matches = re.findall(r"[-+]?\d*\.\d+|\d+", output)
                     if matches:
-                        improvement = float(matches[0])
+                        avg_cost = float(matches[0])
                     else:
-                        print("Could not parse improvement value, defaulting to 0")
-                        improvement = 0.0
+                        print("Could not parse cost value, defaulting to 0")
+                        node.improvement = 0.0
+                        node.score = 0.0
+                        return 0.0
                 
-                # Store the improvement and calculate the score
-                node.improvement = improvement * 100  # Convert to percentage if needed
-                node.score = max(0, improvement)  # Negative improvements are considered as 0
+                # Nếu là node gốc, lưu baseline_cost
+                if node == self.root:
+                    self.baseline_cost = avg_cost
+                    node.improvement = 0.0
+                    node.score = 0.5  # Điểm trung bình làm cơ sở so sánh
+                    return node.score
+                
+                # Tính improvement so với baseline
+                improvement_over_baseline = (self.baseline_cost - avg_cost) / self.baseline_cost
+                
+                # Tính improvement so với node cha
+                parent_avg_cost = self.baseline_cost
+                if node.parent != self.root:
+                    # Tính ngược từ improvement của parent để có parent_avg_cost
+                    parent_improvement = node.parent.improvement / 100  # Chuyển từ % sang tỉ lệ
+                    parent_avg_cost = self.baseline_cost * (1 - parent_improvement)
+                
+                improvement_over_parent = (parent_avg_cost - avg_cost) / parent_avg_cost
+                
+                # Lưu improvement so với baseline (dạng phần trăm)
+                node.improvement = improvement_over_baseline * 100
+                
+                # Hàm chuẩn hóa bất đối xứng: khuếch đại cải thiện nhỏ và đánh nặng sụt giảm
+                def asymmetric_normalization(improvement):
+                    if improvement >= 0:
+                        # Với cải thiện dương: khuếch đại mạnh các giá trị nhỏ (10-50%)
+                        # Hệ số 5.0 làm cho cải thiện 10% đạt khoảng 0.7, 50% đạt khoảng 0.9
+                        return 0.5 + 0.5 * (1 - np.exp(-5.0 * improvement))
+                    else:
+                        # Với sụt giảm: giảm rất nhanh khi có sụt giảm lớn
+                        # Hệ số 3.0 làm cho sụt giảm -50% còn khoảng 0.2, -200% gần bằng 0
+                        return 0.5 * np.exp(3.0 * improvement)
+                
+                normalized_baseline_imp = asymmetric_normalization(improvement_over_baseline)
+                normalized_parent_imp = asymmetric_normalization(improvement_over_parent)
+                
+                # Tính điểm kết hợp (trọng số 60% cho baseline, 40% cho parent)
+                node.score = 0.6 * normalized_baseline_imp + 0.4 * normalized_parent_imp
+                
+                # Đảm bảo score không âm
+                node.score = max(0, node.score)
+                
             except subprocess.TimeoutExpired:
                 print("Evaluation timed out, setting score to 0")
                 node.improvement = 0.0
@@ -273,4 +322,4 @@ class MCTS:
         # Sort nodes by score (descending)
         all_nodes.sort(key=lambda x: x.score, reverse=True)
         
-        return all_nodes[:n]
+        return all_nodes[:n]    

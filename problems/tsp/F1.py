@@ -20,7 +20,7 @@ class HeuristicImpl(HeuristicStrategy):
         # Avoid division by zero
         mask = (distances == 0)
         distances_safe = distances.clone()
-        distances_safe[mask] = 1e-10
+        distances_safe[mask] = 1e-10  
         
         # Basic inverse distance heuristic
         return 1.0 / distances_safe

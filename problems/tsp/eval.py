@@ -12,9 +12,6 @@ try:
 except ImportError as e:
     pass
 
-# Reference baseline cost for comparison
-BASELINE_COST = 5.922366452297707
-
 def run_aco_tsp(args):
     """
     Run ACO-TSP on a single instance with a specific seed.
@@ -66,12 +63,9 @@ def main():
     all_costs = [cost for _, _, cost in results]
     avg_cost = sum(all_costs) / len(all_costs)
     
-    # Calculate improvement over baseline
-    improvement = ((BASELINE_COST - avg_cost) / BASELINE_COST)
-    
-    # Only print the improvement as a simple float (for the MCTS system)
-    print(improvement)
-    return improvement
+    # Chỉ in trung bình chi phí (không tính improvement)
+    print(avg_cost)
+    return avg_cost
 
 if __name__ == "__main__":
     main()

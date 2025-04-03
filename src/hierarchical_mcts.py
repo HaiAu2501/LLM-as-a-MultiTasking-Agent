@@ -7,6 +7,94 @@ from src.operators import Operators
 from omegaconf import DictConfig
 from typing import Dict, List, Any
 
+class OperatorStats:
+    """Lớp theo dõi và tính toán hiệu quả của từng toán tử trong MCTS."""
+    
+    def __init__(self):
+        self.operators = {}  # Từ điển lưu thống kê theo từng toán tử
+    
+    def add_node(self, node):
+        """Thêm một node vào thống kê."""
+        if node.creator_operator is None:
+            return  # Không theo dõi node gốc hoặc không có toán tử tạo ra
+        
+        op_name = node.creator_operator
+        if op_name not in self.operators:
+            self.operators[op_name] = {
+                "count": 0,
+                "total_improvement": 0.0,
+                "total_score": 0.0,
+                "success_count": 0,  # Số lượng node cải thiện > 0
+                "best_improvement": 0.0,
+                "best_score": 0.0,
+                "best_node": None
+            }
+        
+        stats = self.operators[op_name]
+        stats["count"] += 1
+        stats["total_improvement"] += node.improvement
+        stats["total_score"] += node.score
+        
+        if node.improvement > 0:
+            stats["success_count"] += 1
+        
+        if node.improvement > stats["best_improvement"]:
+            stats["best_improvement"] = node.improvement
+            stats["best_node"] = node
+        
+        if node.score > stats["best_score"]:
+            stats["best_score"] = node.score
+            if stats["best_node"] is None or node.score > stats["best_node"].score:
+                stats["best_node"] = node
+    
+    def print_stats(self):
+        """In thống kê hiệu quả của từng toán tử."""
+        print("\n" + "="*70)
+        print("OPERATOR EFFECTIVENESS STATISTICS")
+        print("="*70)
+        
+        if not self.operators:
+            print("No operator statistics available yet.")
+            return
+        
+        # Định dạng bảng
+        format_str = "{:<10} {:<10} {:<15} {:<15} {:<15} {:<15}"
+        print(format_str.format("Operator", "Count", "Avg Improvement", "Success Rate", "Best Improvement", "Avg Score"))
+        print("-"*70)
+        
+        for op_name, stats in self.operators.items():
+            count = stats["count"]
+            if count == 0:
+                continue
+                
+            avg_improvement = stats["total_improvement"] / count
+            success_rate = (stats["success_count"] / count) * 100 if count > 0 else 0
+            best_improvement = stats["best_improvement"]
+            avg_score = stats["total_score"] / count
+            
+            print(format_str.format(
+                op_name,
+                count,
+                f"{avg_improvement:.2f}%",
+                f"{success_rate:.2f}%",
+                f"{best_improvement:.2f}%",
+                f"{avg_score:.4f}"
+            ))
+        
+        print("="*70)
+        
+        # In thêm thông tin chi tiết về node tốt nhất cho mỗi toán tử
+        print("\nBEST NODE DETAILS FOR EACH OPERATOR:")
+        for op_name, stats in self.operators.items():
+            if stats["best_node"] is not None:
+                best_node = stats["best_node"]
+                print(f"\n{op_name} - Best Node:")
+                print(f"  Score: {best_node.score:.4f}")
+                print(f"  Improvement: {best_node.improvement:.2f}%")
+                print(f"  Depth: {best_node.depth}")
+        
+        print("="*70)
+
 class HierarchicalMCTS:   
     def __init__(self, client, prompts, cfg: DictConfig):
         """
@@ -41,6 +129,9 @@ class HierarchicalMCTS:
         
         # Track iteration history for analysis
         self.iteration_history = []
+        
+        # Initialize operator statistics tracking
+        self.operator_stats = OperatorStats()
         
         # Define operators
         self.all_operators = {
@@ -317,12 +408,15 @@ Create a new implementation that incorporates these suggestions while ensuring i
         for child in children:
             score = mcts.simulate(child)
             mcts.backpropagate(child, score)
+            # Thêm node vào thống kê
+            self.operator_stats.add_node(child)
             results[f"child_{len(results)}"] = {
                 "score": child.score,
                 "improvement": child.improvement,
                 "depth": child.depth,
+                "operator": child.creator_operator
             }
-            print(f"Child node score: {child.score:.4f}, improvement: {child.improvement:.2f}%")
+            print(f"Child node score: {child.score:.4f}, improvement: {child.improvement:.2f}%, operator: {child.creator_operator}")
         
         # Print the best score so far
         best_node = mcts.get_best_node()
@@ -395,6 +489,10 @@ Create a new implementation that incorporates these suggestions while ensuring i
                 "suggestions": suggestions,
                 "results": iteration_results
             })
+            
+            # In thống kê sau mỗi 5 lần lặp
+            if sum(strategy_iterations.values()) % 5 == 0:
+                self.operator_stats.print_stats()
         
         # After all iterations, save the best implementations
         for strategy in self.problem_config.functions:
@@ -421,5 +519,9 @@ Create a new implementation that incorporates these suggestions while ensuring i
             print(f"\n{'='*20} Saved best {strategy_name} implementation {'='*20}")
             print(f"Saved to {strategy_path} and {result_path}")
             print(f"Final improvement: {best_node.improvement:.2f}%")
+        
+        # Print final statistics
+        print("\n\nFINAL OPERATOR EFFECTIVENESS STATISTICS")
+        self.operator_stats.print_stats()
         
         return self.best_implementations

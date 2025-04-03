@@ -27,7 +27,7 @@ llm:
 
 # MCTS configuration
 mcts:
-  iterations_per_function: 20
+  iterations_per_function: 10
   max_depth: 10
 
 # Paths configuration

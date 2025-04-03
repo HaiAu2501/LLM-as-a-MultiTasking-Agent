@@ -49,9 +49,9 @@ def main():
         for i in range(1, 6)
     ]
     
-    # Generate 10 seeds for each instance
-    seeds = [42, 123, 456, 789, 1024, 2048, 3072, 4096, 5120, 6144]
-    
+    # Generate some seeds for each instance
+    seeds = [42, 123, 456, 789]
+
     # Create all combinations of instances and seeds
     tasks = [(path, seed) for path in instance_paths for seed in seeds]
     

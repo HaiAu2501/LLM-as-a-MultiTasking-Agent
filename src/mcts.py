@@ -121,8 +121,8 @@ class MCTS:
                             print(f"Could not fix code generated with operator {op_name}, skipping...")
                             continue
                     
-                    # Create a new child node
-                    child = Node(new_code, self.function_name, parent=node, depth=node.depth + 1)
+                    # Create a new child node with operator information
+                    child = Node(new_code, self.function_name, parent=node, depth=node.depth + 1, creator_operator=op_name)
                     node.add_child(child)
                     new_children.append(child)
                     
@@ -322,4 +322,4 @@ class MCTS:
         # Sort nodes by score (descending)
         all_nodes.sort(key=lambda x: x.score, reverse=True)
         
-        return all_nodes[:n]    
+        return all_nodes[:n]

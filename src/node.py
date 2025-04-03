@@ -4,7 +4,7 @@ class Node:
     Each node contains a specific implementation of a function.
     """
     
-    def __init__(self, function_code, function_name, parent=None, depth=0, visits=0, score=0.0):
+    def __init__(self, function_code, function_name, parent=None, depth=0, visits=0, score=0.0, creator_operator=None):
         """
         Initialize a node in the MCTS tree.
         
@@ -15,6 +15,7 @@ class Node:
             depth (int, optional): The depth of the node in the tree. Defaults to 0.
             visits (int, optional): The number of times the node has been visited. Defaults to 0.
             score (float, optional): The score of the node. Defaults to 0.0.
+            creator_operator (str, optional): The name of operator that created this node. Defaults to None.
         """
         self.function_code = function_code
         self.function_name = function_name
@@ -24,6 +25,7 @@ class Node:
         self.visits = visits
         self.score = score  # Higher is better
         self.improvement = 0.0  # Improvement over baseline (percentage)
+        self.creator_operator = creator_operator
         
     def add_child(self, child):
         """
@@ -50,7 +52,7 @@ class Node:
     
     def __str__(self):
         """String representation of the node."""
-        return f"Node({self.function_name}, depth={self.depth}, visits={self.visits}, score={self.score:.4f}, improvement={self.improvement:.2f}%)"
+        return f"Node({self.function_name}, depth={self.depth}, visits={self.visits}, score={self.score:.4f}, improvement={self.improvement:.2f}%, operator={self.creator_operator})"
     
     def __repr__(self):
         """Representation of the node."""
